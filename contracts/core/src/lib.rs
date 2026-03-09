@@ -30,5 +30,13 @@ pub struct HorizonCoverVault;
 
 #[contractimpl]
 impl HorizonCoverVault {
-    // Functions will be implemented here
+    pub fn initialize(env: Env, admin: Address, usdc_token: Address, monitor_adapter: Address) {
+        if env.storage().instance().has(&DataKey::Admin) {
+            panic!("already initialized");
+        }
+        env.storage().instance().set(&DataKey::Admin, &admin);
+        env.storage().instance().set(&DataKey::UsdcToken, &usdc_token);
+        env.storage().instance().set(&DataKey::MonitorAdapter, &monitor_adapter);
+        env.storage().instance().set(&DataKey::VaultBalance, &0u128);
+    }
 }
