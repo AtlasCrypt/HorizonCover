@@ -70,4 +70,43 @@ impl HorizonCoverVault {
 
         env.storage().persistent().set(&policy_key, &policy);
     }
+
+    pub fn pay_premium(env: Env, protocol: Address) {
+        let policy_key = DataKey::Policy(protocol.clone());
+        let mut policy: Policy = env.storage().persistent().get(&policy_key).unwrap();
+        
+        if !policy.is_active || policy.is_settled {
+            panic!("policy not active or already settled");
+        }
+
+        protocol.require_auth();
+
+        let usdc_token: Address = env.storage().instance().get(&DataKey::UsdcToken).unwrap();
+        let token_client = soroban_sdk::token::Client::new(&env, &usdc_token);
+
+        let vault_address = env.current_contract_address();
+        token_client.transfer(&protocol, &vault_address, &(policy.premium_per_period as i128));
+
+        policy.last_premium_paid = env.ledger().timestamp();
+        env.storage().persistent().set(&policy_key, &policy);
+
+        let mut vault_balance: u128 = env.storage().instance().get(&DataKey::VaultBalance).unwrap();
+        vault_balance += policy.premium_per_period;
+        env.storage().instance().set(&DataKey::VaultBalance, &vault_balance);
+    }
+
+    pub fn is_premium_current(env: Env, protocol: Address) -> bool {
+        let policy_key = DataKey::Policy(protocol);
+        let policy: Policy = env.storage().persistent().get(&policy_key).unwrap();
+        
+        // 30 days in seconds = 30 * 24 * 60 * 60 = 2592000
+        let grace_period: u64 = 2_592_000;
+        
+        if policy.last_premium_paid == 0 {
+            return false;
+        }
+
+        let current_time = env.ledger().timestamp();
+        current_time <= policy.last_premium_paid + grace_period
+    }
 }
