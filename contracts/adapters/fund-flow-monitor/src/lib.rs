@@ -1,29 +1,25 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, Env};
+use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DataKey {
+    Admin,
+    CoreVault,
+    WhitelistedWithdrawal(Address, u64), // protocol address, nonce
+}
 
 #[contract]
 pub struct FundFlowMonitor;
 
 #[contractimpl]
 impl FundFlowMonitor {
-    /// Placeholder — adapter shell. Implementation follows in Phase 2.
-    pub fn version(env: Env) -> u32 {
-        env.storage().instance().extend_ttl(100, 100);
-        1
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use soroban_sdk::Env;
-
-    #[test]
-    fn test_version() {
-        let env = Env::default();
-        let contract_id = env.register(FundFlowMonitor, ());
-        let client = FundFlowMonitorClient::new(&env, &contract_id);
-        assert_eq!(client.version(), 1);
+    pub fn initialize(env: Env, admin: Address, core_vault: Address) {
+        if env.storage().instance().has(&DataKey::Admin) {
+            panic!("already initialized");
+        }
+        env.storage().instance().set(&DataKey::Admin, &admin);
+        env.storage().instance().set(&DataKey::CoreVault, &core_vault);
     }
 }
