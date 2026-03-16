@@ -75,3 +75,19 @@ impl MockProtocol {
         env.storage().instance().get(&DataKey::Balance).unwrap_or(0)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use soroban_sdk::{testutils::Address as _, Address, Env};
+
+    #[test]
+    fn test_drain_integration_placeholder() {
+        // Full integration test involving Core, Monitor, and Mock Protocol
+        // This simulates a hack and verifies payout execution.
+        // Assigned to Wave 1 contributors.
+        let env = Env::default();
+        let _contract_id = env.register(MockProtocol, ());
+        // ... placeholder ...
+    }
+}
