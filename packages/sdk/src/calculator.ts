@@ -1,4 +1,4 @@
-import { PayoutPreview } from '@horizoncover/types';
+import type { PayoutPreview } from '@horizoncover/types';
 
 export function calculatePayoutOffchain(
   amountDrained: bigint,
