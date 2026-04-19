@@ -1,6 +1,6 @@
 # Contributing to HorizonCover
 
-Welcome! We are incredibly excited you are interested in contributing to HorizonCover. This repository is participating in the **Stellar Drips Wave Program**, meaning your contributions may be eligible for retroactive funding and rewards based on the Drips point system.
+Welcome! We are incredibly excited you are interested in contributing to HorizonCover. This repository is participating in the **Stellar Drips Wave Program**, meaning your contributions may be eligible for funding and rewards based on the Drips point system.
 
 ## The Drips Point System
 
@@ -17,9 +17,20 @@ To ensure fair attribution for the Wave program:
 HorizonCover is a monorepo built with `pnpm`.
 
 ### Prerequisites
-- [Rust](https://rustup.rs/) (latest stable) and the `wasm32-unknown-unknown` target.
+- [Rust](https://rustup.rs/) (latest stable)
 - [Stellar CLI](https://developers.stellar.org/docs/build/smart-contracts/getting-started/setup)
 - Node.js (v20+) and [pnpm](https://pnpm.io/)
+
+**Add the WASM compilation target (one time only):**
+```bash
+rustup target add wasm32-unknown-unknown
+```
+
+**Get a funded testnet account:**
+```bash
+stellar keys generate --global contributor-key --network testnet
+stellar keys fund contributor-key --network testnet
+```
 
 ### Local Setup
 
