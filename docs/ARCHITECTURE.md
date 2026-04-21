@@ -37,7 +37,7 @@ The brain of the system. It maintains the state of all `Policy` objects in persi
 - **payout formula**: A mathematically deterministic basis point calculation. If a protocol declares \$1M TVL and is drained for \$400k (40%), and the threshold is 30%, the protocol receives a proportional payout based on the 10% excess.
 
 ### Fund Flow Monitor (`contracts/adapters/fund-flow-monitor`)
-In the MVP, this acts as the "Oracle" that detects an exploit. Rather than relying on off-chain web2 price oracles, it monitors the on-chain balance of the covered protocol.
+In the MVP, this acts as the "Oracle" that detects an exploit. Rather than relying on off-chain data sources, it monitors on-chain balances directly.
 - If an anomalous transaction (a hack) drains funds beyond the threshold, it triggers the vault.
 - It includes a whitelist mechanism `register_normal_withdrawal` so protocols can conduct large legitimate migrations without triggering a false positive payout.
 
@@ -54,3 +54,15 @@ stateDiagram-v2
     Active --> Settled: Exploit Detected (trigger_payout)
     Settled --> [*]
 ```
+
+## Payout Execution Sequence
+
+1. Covered protocol pays premium → `Core Vault` updates `last_premium_paid`
+2. Exploit occurs → protocol TVL drops
+3. Admin (MVP) calls `report_drain_event(protocol, amount_drained)` on Monitor
+4. Monitor checks `is_whitelisted_withdrawal` → not whitelisted
+5. Monitor calls `trigger_payout(protocol, amount_drained)` on Core Vault
+6. Core Vault checks: policy active? premium current? not settled?
+7. Core Vault runs payout formula → calculates USDC amount
+8. Core Vault transfers USDC to beneficiary address
+9. Core Vault sets `is_settled = true`
