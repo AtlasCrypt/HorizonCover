@@ -12,7 +12,7 @@ The architecture is divided into three primary layers:
 ```mermaid
 graph TD
     subgraph Frontend & SDK
-        A[React Dashboard] -->|uses| B(@horizoncover/sdk)
+        A[React Dashboard] -->|uses| B("@horizoncover/sdk")
         B -->|RPC calls| C[Stellar Network]
     end
 
