@@ -1,11 +1,66 @@
-name: Frontend Task
-description: Work on the Vite/React frontend
-labels: ["frontend"]
+name: 🖥️ Frontend Task
+description: Work on the Vite/React frontend dashboard
+labels: ["frontend", "wave-ready", "help wanted"]
 body:
   - type: textarea
     id: description
     attributes:
       label: Task Description
-      description: What needs to be implemented in the frontend?
+      description: What needs to be implemented and why does it matter?
     validations:
       required: true
+
+  - type: textarea
+    id: files
+    attributes:
+      label: Files to Touch
+      description: Which specific files should the contributor work in?
+      placeholder: |
+        - frontend/src/components/ProtocolCard.tsx
+        - frontend/src/hooks/useCoverage.ts
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How does the contributor know when they are done?
+      placeholder: |
+        - [ ] Component renders without errors
+        - [ ] Works on mobile (375px viewport)
+        - [ ] No TypeScript errors (pnpm tsc --noEmit passes)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: difficulty
+    attributes:
+      label: Difficulty
+      options:
+        - Easy (1–2 days)
+        - Medium (2–4 days)
+        - Hard (4–7 days)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: What does the contributor need before starting?
+      options:
+        - None — just clone and run pnpm dev
+        - Requires wallet — install Freighter extension
+        - Requires testnet — follow CONTRIBUTING.md setup
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Maintainer Checklist
+      options:
+        - label: Issue is scoped to a single file or component
+        - label: Issue does not conflict with any currently open PR
+        - label: Acceptance criteria are testable
