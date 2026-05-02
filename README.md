@@ -39,18 +39,18 @@ We replace trust with code:
 ```mermaid
 graph LR
     subgraph "DeFi Ecosystem"
-        Target[Covered Protocol]
-        Exploiter[Malicious Actor]
+        Target["Covered Protocol"]
+        Exploiter["Malicious Actor"]
     end
 
     subgraph "HorizonCover Infrastructure"
-        Monitor[Fund Flow Monitor<br/>Adapter Contract]
-        Vault((Core Vault<br/>Smart Contract))
+        Monitor["Fund Flow Monitor<br/>Adapter Contract"]
+        Vault(("Core Vault<br/>Smart Contract"))
     end
 
     subgraph "Settlement Layer"
-        Treasury[Protocol Treasury]
-        USDC[Circle USDC]
+        Treasury["Protocol Treasury"]
+        USDC["Circle USDC"]
     end
 
     Exploiter -- "Drains TVL" --> Target
@@ -111,7 +111,13 @@ cd HorizonCover
 pnpm install
 ```
 
-**2. Run the UI locally**
+**2. Configure Environment**
+```bash
+# Add the WASM compilation target (one time only)
+rustup target add wasm32-unknown-unknown
+```
+
+**3. Run the UI locally**
 ```bash
 cd frontend
 pnpm dev
@@ -135,7 +141,14 @@ HorizonCover/
 │   ├── sdk/                 # TypeScript interaction SDK
 │   └── types/               # Cross-repo TS definitions
 └── docs/                    # Architecture and contributing guides
-```
+
+---
+
+### Documentation
+For deep dives into the protocol's inner workings and security model, please refer to:
+- [**Architecture Guide**](./docs/ARCHITECTURE.md): System flows, component breakdown, and payout sequences.
+- [**Security & Threat Model**](./docs/SECURITY.md): RBAC matrix, known limitations, and mitigation strategies.
+- [**Contributing Guide**](CONTRIBUTING.md): Drips Wave guidelines and environment setup.```
 
 ---
 
