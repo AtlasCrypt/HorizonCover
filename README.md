@@ -141,6 +141,7 @@ HorizonCover/
 │   ├── sdk/                 # TypeScript interaction SDK
 │   └── types/               # Cross-repo TS definitions
 └── docs/                    # Architecture and contributing guides
+```
 
 ---
 
@@ -148,7 +149,7 @@ HorizonCover/
 For deep dives into the protocol's inner workings and security model, please refer to:
 - [**Architecture Guide**](./docs/ARCHITECTURE.md): System flows, component breakdown, and payout sequences.
 - [**Security & Threat Model**](./docs/SECURITY.md): RBAC matrix, known limitations, and mitigation strategies.
-- [**Contributing Guide**](CONTRIBUTING.md): Drips Wave guidelines and environment setup.```
+- [**Contributing Guide**](CONTRIBUTING.md): Drips Wave guidelines and environment setup.
 
 ---
 
