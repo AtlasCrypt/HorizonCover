@@ -123,7 +123,7 @@ cd frontend
 pnpm dev
 ```
 
-**3. Compile Contracts**
+**4. Compile Contracts**
 ```bash
 pnpm build:contracts
 ```
