@@ -13,18 +13,16 @@ The architecture is divided into three primary layers:
 graph TD
     subgraph "Frontend and SDK"
         A["React Dashboard"] -->|uses| B("@horizoncover/sdk")
-        B -->|"RPC calls"| C["Stellar Network"]
+        B -->|RPC calls| C["Stellar Network"]
     end
-
     subgraph "Soroban Network"
         C --> D["Core Vault Contract"]
         E["Fund Flow Monitor Adapter"] -->|trigger_payout| D
         F["Mock Protocol / Covered DeFi App"] -->|pay_premium| D
         E -.->|observes| F
     end
-
     subgraph "Users"
-        G["Beneficiary"] <--|"Receives Payout"| D
+        D -->|Receives Payout| G["Beneficiary"]
         H["Protocol Admin"] -->|Registers| D
     end
 ```
