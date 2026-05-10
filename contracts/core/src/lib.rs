@@ -109,4 +109,59 @@ impl HorizonCoverVault {
         let current_time = env.ledger().timestamp();
         current_time <= policy.last_premium_paid + grace_period
     }
+
+    pub fn trigger_payout(env: Env, protocol: Address, amount_drained: u128) {
+        let monitor: Address = env.storage().instance().get(&DataKey::MonitorAdapter).unwrap();
+        monitor.require_auth();
+
+        let policy_key = DataKey::Policy(protocol.clone());
+        let mut policy: Policy = env.storage().persistent().get(&policy_key).unwrap();
+
+        if !policy.is_active || policy.is_settled {
+            panic!("policy not active or already settled");
+        }
+
+        if !Self::is_premium_current(env.clone(), protocol.clone()) {
+            panic!("premium not current");
+        }
+
+        let payout = calculate_payout(&policy, amount_drained);
+
+        if payout > 0 {
+            let usdc_token: Address = env.storage().instance().get(&DataKey::UsdcToken).unwrap();
+            let token_client = soroban_sdk::token::Client::new(&env, &usdc_token);
+            let vault_address = env.current_contract_address();
+            
+            token_client.transfer(&vault_address, &policy.beneficiary, &(payout as i128));
+
+            let mut vault_balance: u128 = env.storage().instance().get(&DataKey::VaultBalance).unwrap();
+            vault_balance -= payout;
+            env.storage().instance().set(&DataKey::VaultBalance, &vault_balance);
+        }
+
+        policy.is_settled = true;
+        env.storage().persistent().set(&policy_key, &policy);
+    }
+
+    pub fn get_policy(env: Env, protocol: Address) -> Policy {
+        env.storage().persistent().get(&DataKey::Policy(protocol)).unwrap()
+    }
+
+    pub fn get_vault_balance(env: Env) -> u128 {
+        env.storage().instance().get(&DataKey::VaultBalance).unwrap()
+    }
+}
+
+fn calculate_payout(policy: &Policy, amount_drained: u128) -> u128 {
+    let drain_bps = (amount_drained * 10_000) / policy.total_locked_value;
+
+    if drain_bps <= policy.drain_threshold as u128 {
+        return 0;
+    }
+
+    let excess_bps = drain_bps - policy.drain_threshold as u128;
+    let range_bps = 10_000u128 - policy.drain_threshold as u128;
+    let payout = policy.max_benefit * excess_bps / range_bps;
+
+    payout.min(policy.max_benefit)
 }
