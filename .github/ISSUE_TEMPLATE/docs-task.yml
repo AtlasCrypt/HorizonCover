@@ -1,11 +1,65 @@
-name: Documentation Task
-description: Work on documentation or community guides
-labels: ["docs"]
+name: 📝 Documentation Task
+description: Work on architecture, security, or regional documentation
+labels: ["documentation", "wave-ready", "help wanted"]
 body:
   - type: textarea
     id: description
     attributes:
       label: Task Description
-      description: What needs to be documented?
+      description: What needs to be documented and why does it matter?
     validations:
       required: true
+
+  - type: textarea
+    id: files
+    attributes:
+      label: Files to Touch
+      description: Which specific markdown files should the contributor work in?
+      placeholder: |
+        - docs/ARCHITECTURE.md
+        - README.md
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How does the contributor know when they are done?
+      placeholder: |
+        - [ ] Grammar and spelling check passed
+        - [ ] Mermaid diagrams render correctly on GitHub
+        - [ ] All internal and external links are verified
+    validations:
+      required: true
+
+  - type: dropdown
+    id: difficulty
+    attributes:
+      label: Difficulty
+      options:
+        - Easy (1–2 days)
+        - Medium (2–4 days)
+        - Hard (4–7 days)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: What does the contributor need before starting?
+      options:
+        - None — just markdown knowledge
+        - Requires Mermaid.js knowledge
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Maintainer Checklist
+      options:
+        - label: Issue is scoped to a single document or section
+        - label: Issue does not conflict with any currently open PR
+        - label: Tone matches the existing project documentation
