@@ -1,0 +1,19 @@
+{
+  "name": "horizoncover",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Parametric DeFi Protocol Insurance on Stellar/Soroban",
+  "scripts": {
+    "dev": "pnpm --filter frontend dev",
+    "build": "pnpm --filter frontend build",
+    "typecheck": "pnpm -r run typecheck"
+  },
+  "keywords": [
+    "stellar",
+    "soroban",
+    "defi",
+    "insurance",
+    "parametric"
+  ],
+  "license": "MIT"
+}
