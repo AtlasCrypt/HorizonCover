@@ -102,7 +102,7 @@ Browse all contributor tasks on our [Issues board](../../issues). Filter by `wav
 ### Local Development Quick Start
 
 **Prerequisites:**
-- Rust 1.74+ | `wasm32-unknown-unknown` target
+- Rust (latest stable) | `wasm32-unknown-unknown` target
 - Node.js 20+ | pnpm 9+
 
 **1. Clone & Install**
