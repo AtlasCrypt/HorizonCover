@@ -8,7 +8,7 @@ The protocol enforces strict access controls using Soroban's `require_auth()` me
 
 | Role | Capabilities |
 |------|--------------|
-| **Admin** | Registers new policies, initializes contracts, and has emergency pause capabilities (to be implemented). |
+| **Admin** | Registers new policies and initializes contracts. |
 | **Monitor Adapter** | The *only* address authorized to call `trigger_payout` on the Core Vault. |
 | **Protocol (Client)** | Can call `pay_premium` and `register_normal_withdrawal` (whitelist). |
 | **Beneficiary** | The address that receives the USDC payout. Cannot trigger the payout themselves. |
@@ -33,10 +33,17 @@ The protocol enforces strict access controls using Soroban's `require_auth()` me
 **Mitigation:**
 - The `is_premium_current` helper verifies the `last_premium_paid` ledger timestamp against a strict 30-day grace period. Payouts `panic!` if the premium is lapsed.
 
+### 4. Vault Insolvency (Over-Subscription)
+**Attack:** The vault accumulates policies whose combined `max_benefit` exceeds the actual USDC reserves. A single large payout event drains the vault and subsequent policyholders receive nothing.
+
+**Current State:** No solvency ratio is enforced in the MVP.
+
+**Mitigation (Backlog):** Implement a `max_underwriting_ratio` — total active `max_benefit` across all policies cannot exceed X% of vault balance. Suggested starting ratio: 150% (industry standard for parametric pools).
+
 ## Known Limitations (MVP Phase)
 
 *This repository is currently in a pre-approval scaffold state for the Stellar Drips Wave Program.*
 
 1. **Oracle Decentralization:** Currently, the Fund Flow monitor relies on an Admin trigger to simulate the detection. Future iterations require fully decentralized on-chain event listeners.
 2. **Reentrancy Protection:** While Soroban has built-in protections against reentrancy, explicit non-reentrant state locks should be added before mainnet deployment.
-3. **Liquidity Solvency:** The vault does not currently restrict the total `max_benefit` of all active policies against its actual USDC reserves. A solvency ratio check must be implemented.
+3. **Emergency Controls:** The vault currently lacks an emergency pause capability for the Admin role to halt operations during a critical vulnerability. This must be implemented prior to mainnet.
