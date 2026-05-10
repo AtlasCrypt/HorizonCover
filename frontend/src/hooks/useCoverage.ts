@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Policy, PayoutPreview } from '@horizoncover/types';
+import type { Policy, PayoutPreview } from '@horizoncover/types';
 import { calculatePayoutOffchain } from '@horizoncover/sdk';
 
 export function useCoverage(protocolAddress: string) {
