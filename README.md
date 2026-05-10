@@ -53,8 +53,9 @@ graph LR
         USDC["Circle USDC"]
     end
 
+    Target -- "Pays Premium" --> Vault
     Exploiter -- "Drains TVL" --> Target
-    Monitor -- "Detects Drain Ratio > Threshold" --> Target
+    Monitor -. "Observes Fund Flow" .-> Target
     Monitor -- "trigger_payout()" --> Vault
     Vault -- "Calculates Parametric Math" --> USDC
     USDC -- "Instant Payout" --> Treasury
