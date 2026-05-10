@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StellarWalletsKit, WalletNetwork, allowAllModules } from '@creit.tech/stellar-wallets-kit';
+import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
 
 export function useWallet() {
   const [publicKey, setPublicKey] = useState<string | null>(null);
@@ -8,9 +8,8 @@ export function useWallet() {
   const connect = async () => {
     try {
       const newKit = new StellarWalletsKit({
-        network: WalletNetwork.TESTNET,
-        selectedWalletId: 'freighter',
-        modules: allowAllModules(),
+        network: 'TESTNET' as any,
+        selectedWalletId: 'freighter'
       });
       setKit(newKit);
       await newKit.openModal({
