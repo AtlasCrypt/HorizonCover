@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import type { Policy, PayoutPreview } from '@horizoncover/types';
 import { calculatePayoutOffchain } from '@horizoncover/sdk';
 
-export function useCoverage(protocolAddress: string) {
+export function useCoverage(_protocolAddress: string) {
   const [policy, setPolicy] = useState<Policy | null>(null);
   const [preview, setPreview] = useState<PayoutPreview | null>(null);
   const [loading, setLoading] = useState(true);
