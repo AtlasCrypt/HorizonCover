@@ -1,0 +1,11 @@
+name: Contract Task
+description: Work on the Soroban Rust contracts
+labels: ["contracts"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Task Description
+      description: What needs to be implemented in the smart contracts?
+    validations:
+      required: true

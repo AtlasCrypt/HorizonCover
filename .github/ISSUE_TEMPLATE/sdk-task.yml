@@ -1,0 +1,11 @@
+name: SDK Task
+description: Work on the TypeScript SDK
+labels: ["sdk"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Task Description
+      description: What needs to be implemented in the SDK?
+    validations:
+      required: true
