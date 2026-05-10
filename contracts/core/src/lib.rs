@@ -39,4 +39,35 @@ impl HorizonCoverVault {
         env.storage().instance().set(&DataKey::MonitorAdapter, &monitor_adapter);
         env.storage().instance().set(&DataKey::VaultBalance, &0u128);
     }
+
+    pub fn register_policy(
+        env: Env,
+        protocol: Address,
+        beneficiary: Address,
+        max_benefit: u128,
+        tvl: u128,
+        threshold_bps: u32,
+        premium: u128,
+    ) {
+        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
+        admin.require_auth();
+
+        let policy_key = DataKey::Policy(protocol.clone());
+        if env.storage().persistent().has(&policy_key) {
+            panic!("policy already exists");
+        }
+
+        let policy = Policy {
+            beneficiary,
+            max_benefit,
+            total_locked_value: tvl,
+            drain_threshold: threshold_bps,
+            premium_per_period: premium,
+            last_premium_paid: 0,
+            is_active: true,
+            is_settled: false,
+        };
+
+        env.storage().persistent().set(&policy_key, &policy);
+    }
 }
