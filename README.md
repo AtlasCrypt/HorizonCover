@@ -4,6 +4,7 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Soroban](https://img.shields.io/badge/soroban-enabled-purple.svg)](https://soroban.stellar.org)
+[![Live Demo](https://img.shields.io/badge/demo-vercel-black.svg)](https://horizon-cover-frontend.vercel.app/)
 
 > **Join the Build:** We are creating public-good DeFi infrastructure for the Stellar ecosystem. Whether you write Rust, TypeScript, or documentation, there is a place for you here. Check our [open issues](../../issues).
 
@@ -93,6 +94,7 @@ We have successfully scaffolded the foundational monorepo and core mathematical 
 - ✅ Fund Flow Monitor and Mock Protocol adapters implemented.
 - ✅ TypeScript SDK and Types packages built.
 - ✅ React Frontend with dynamic payout sandboxes and Stellar Wallets Kit.
+- ✅ **Live Dashboard Deployed:** [horizon-cover-frontend.vercel.app](https://horizon-cover-frontend.vercel.app/)
 
 ### 🛠️ Open Bounties & Tasks
 Browse all contributor tasks on our [Issues board](../../issues). Filter by `wave-ready` to see what's available this wave.
