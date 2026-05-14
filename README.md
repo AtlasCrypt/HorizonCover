@@ -111,6 +111,7 @@ Browse all contributor tasks on our [Issues board](../../issues). Filter by `wav
 ```bash
 git clone https://github.com/AtlasCrypt/HorizonCover.git
 cd HorizonCover
+
 pnpm install
 ```
 
