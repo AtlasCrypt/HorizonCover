@@ -24,6 +24,7 @@ Thumbs.db
 # Soroban
 *.wasm
 !contracts/target/wasm32-unknown-unknown/release/*.optimized.wasm
+test_snapshots/
 
 # Logs
 *.log

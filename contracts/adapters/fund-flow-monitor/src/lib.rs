@@ -20,15 +20,29 @@ impl FundFlowMonitor {
             panic!("already initialized");
         }
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().set(&DataKey::CoreVault, &core_vault);
+        env.storage()
+            .instance()
+            .set(&DataKey::CoreVault, &core_vault);
     }
 
-    pub fn report_drain_event(env: Env, reporter: Address, protocol: Address, amount_drained: u128) {
+    pub fn report_drain_event(
+        env: Env,
+        reporter: Address,
+        protocol: Address,
+        amount_drained: u128,
+        nonce: u64,
+    ) {
         let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
-        
+
         reporter.require_auth();
         if reporter != admin {
             panic!("only admin can report drain events in MVP");
+        }
+
+        // A withdrawal the protocol pre-registered as normal is not an exploit
+        // and must never trigger a payout.
+        if Self::is_whitelisted_withdrawal(env.clone(), protocol.clone(), amount_drained, nonce) {
+            panic!("whitelisted withdrawal: not an exploit");
         }
 
         let core_vault: Address = env.storage().instance().get(&DataKey::CoreVault).unwrap();
@@ -42,12 +56,17 @@ impl FundFlowMonitor {
 
     pub fn register_normal_withdrawal(env: Env, protocol: Address, amount: u128, nonce: u64) {
         protocol.require_auth();
-        
+
         let key = DataKey::WhitelistedWithdrawal(protocol, nonce);
         env.storage().persistent().set(&key, &amount);
     }
 
-    pub fn is_whitelisted_withdrawal(env: Env, protocol: Address, amount: u128, nonce: u64) -> bool {
+    pub fn is_whitelisted_withdrawal(
+        env: Env,
+        protocol: Address,
+        amount: u128,
+        nonce: u64,
+    ) -> bool {
         let key = DataKey::WhitelistedWithdrawal(protocol, nonce);
         if let Some(whitelisted_amount) = env.storage().persistent().get::<_, u128>(&key) {
             whitelisted_amount == amount
@@ -56,3 +75,6 @@ impl FundFlowMonitor {
         }
     }
 }
+
+#[cfg(test)]
+mod test;

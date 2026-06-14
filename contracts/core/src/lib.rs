@@ -5,12 +5,12 @@ use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Policy {
-    pub beneficiary: Address,        // who receives the payout
-    pub max_benefit: u128,           // max USDC payout (in stroops)
-    pub total_locked_value: u128,    // declared TVL at registration time
-    pub drain_threshold: u32,        // e.g. 3000 = 30.00% (basis points)
-    pub premium_per_period: u128,    // USDC required per period
-    pub last_premium_paid: u64,      // ledger timestamp of last payment
+    pub beneficiary: Address,     // who receives the payout
+    pub max_benefit: u128,        // max USDC payout (in stroops)
+    pub total_locked_value: u128, // declared TVL at registration time
+    pub drain_threshold: u32,     // e.g. 3000 = 30.00% (basis points)
+    pub premium_per_period: u128, // USDC required per period
+    pub last_premium_paid: u64,   // ledger timestamp of last payment
     pub is_active: bool,
     pub is_settled: bool,
 }
@@ -18,11 +18,11 @@ pub struct Policy {
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DataKey {
-    Policy(Address),        // policy per covered protocol
-    VaultBalance,           // total USDC held
-    Admin,                  // protocol admin address
-    UsdcToken,              // USDC contract address
-    MonitorAdapter,         // monitor adapter address
+    Policy(Address), // policy per covered protocol
+    VaultBalance,    // total USDC held
+    Admin,           // protocol admin address
+    UsdcToken,       // USDC contract address
+    MonitorAdapter,  // monitor adapter address
 }
 
 #[contract]
@@ -35,8 +35,12 @@ impl HorizonCoverVault {
             panic!("already initialized");
         }
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().set(&DataKey::UsdcToken, &usdc_token);
-        env.storage().instance().set(&DataKey::MonitorAdapter, &monitor_adapter);
+        env.storage()
+            .instance()
+            .set(&DataKey::UsdcToken, &usdc_token);
+        env.storage()
+            .instance()
+            .set(&DataKey::MonitorAdapter, &monitor_adapter);
         env.storage().instance().set(&DataKey::VaultBalance, &0u128);
     }
 
@@ -71,10 +75,33 @@ impl HorizonCoverVault {
         env.storage().persistent().set(&policy_key, &policy);
     }
 
+    /// Deposits USDC into the vault to underwrite future payouts. Premiums alone
+    /// cannot cover max benefits, so underwriters supply the backing capital.
+    pub fn deposit_liquidity(env: Env, from: Address, amount: u128) {
+        from.require_auth();
+
+        let usdc_token: Address = env.storage().instance().get(&DataKey::UsdcToken).unwrap();
+        let token_client = soroban_sdk::token::Client::new(&env, &usdc_token);
+        let vault_address = env.current_contract_address();
+        token_client.transfer(&from, &vault_address, &(amount as i128));
+
+        let mut vault_balance: u128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::VaultBalance)
+            .unwrap();
+        vault_balance = vault_balance
+            .checked_add(amount)
+            .expect("vault balance overflow");
+        env.storage()
+            .instance()
+            .set(&DataKey::VaultBalance, &vault_balance);
+    }
+
     pub fn pay_premium(env: Env, protocol: Address) {
         let policy_key = DataKey::Policy(protocol.clone());
         let mut policy: Policy = env.storage().persistent().get(&policy_key).unwrap();
-        
+
         if !policy.is_active || policy.is_settled {
             panic!("policy not active or already settled");
         }
@@ -85,23 +112,33 @@ impl HorizonCoverVault {
         let token_client = soroban_sdk::token::Client::new(&env, &usdc_token);
 
         let vault_address = env.current_contract_address();
-        token_client.transfer(&protocol, &vault_address, &(policy.premium_per_period as i128));
+        token_client.transfer(
+            &protocol,
+            &vault_address,
+            &(policy.premium_per_period as i128),
+        );
 
         policy.last_premium_paid = env.ledger().timestamp();
         env.storage().persistent().set(&policy_key, &policy);
 
-        let mut vault_balance: u128 = env.storage().instance().get(&DataKey::VaultBalance).unwrap();
+        let mut vault_balance: u128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::VaultBalance)
+            .unwrap();
         vault_balance += policy.premium_per_period;
-        env.storage().instance().set(&DataKey::VaultBalance, &vault_balance);
+        env.storage()
+            .instance()
+            .set(&DataKey::VaultBalance, &vault_balance);
     }
 
     pub fn is_premium_current(env: Env, protocol: Address) -> bool {
         let policy_key = DataKey::Policy(protocol);
         let policy: Policy = env.storage().persistent().get(&policy_key).unwrap();
-        
+
         // 30 days in seconds = 30 * 24 * 60 * 60 = 2592000
         let grace_period: u64 = 2_592_000;
-        
+
         if policy.last_premium_paid == 0 {
             return false;
         }
@@ -111,7 +148,11 @@ impl HorizonCoverVault {
     }
 
     pub fn trigger_payout(env: Env, protocol: Address, amount_drained: u128) {
-        let monitor: Address = env.storage().instance().get(&DataKey::MonitorAdapter).unwrap();
+        let monitor: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::MonitorAdapter)
+            .unwrap();
         monitor.require_auth();
 
         let policy_key = DataKey::Policy(protocol.clone());
@@ -125,18 +166,25 @@ impl HorizonCoverVault {
             panic!("premium not current");
         }
 
-        let payout = calculate_payout(&policy, amount_drained);
+        // Cap the payout to the capital actually held so the vault can never
+        // promise more than it can pay (and the subtraction can never underflow).
+        let vault_balance: u128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::VaultBalance)
+            .unwrap();
+        let payout = calculate_payout(&policy, amount_drained).min(vault_balance);
 
         if payout > 0 {
             let usdc_token: Address = env.storage().instance().get(&DataKey::UsdcToken).unwrap();
             let token_client = soroban_sdk::token::Client::new(&env, &usdc_token);
             let vault_address = env.current_contract_address();
-            
+
             token_client.transfer(&vault_address, &policy.beneficiary, &(payout as i128));
 
-            let mut vault_balance: u128 = env.storage().instance().get(&DataKey::VaultBalance).unwrap();
-            vault_balance -= payout;
-            env.storage().instance().set(&DataKey::VaultBalance, &vault_balance);
+            env.storage()
+                .instance()
+                .set(&DataKey::VaultBalance, &(vault_balance - payout));
         }
 
         policy.is_settled = true;
@@ -144,13 +192,22 @@ impl HorizonCoverVault {
     }
 
     pub fn get_policy(env: Env, protocol: Address) -> Policy {
-        env.storage().persistent().get(&DataKey::Policy(protocol)).unwrap()
+        env.storage()
+            .persistent()
+            .get(&DataKey::Policy(protocol))
+            .unwrap()
     }
 
     pub fn get_vault_balance(env: Env) -> u128 {
-        env.storage().instance().get(&DataKey::VaultBalance).unwrap()
+        env.storage()
+            .instance()
+            .get(&DataKey::VaultBalance)
+            .unwrap()
     }
 }
+
+#[cfg(test)]
+mod test;
 
 fn calculate_payout(policy: &Policy, amount_drained: u128) -> u128 {
     let drain_bps = (amount_drained * 10_000) / policy.total_locked_value;
