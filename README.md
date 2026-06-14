@@ -1,175 +1,178 @@
 # HorizonCover
 
-**A decentralized parametric DeFi insurance engine providing instant, math-enforced payouts on the Stellar network.**
+**Parametric insurance for DeFi protocols, built on Stellar.** When a covered protocol gets drained, the payout is decided by math and settled in USDC in seconds — no claims forms, no adjusters, no DAO vote.
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Soroban](https://img.shields.io/badge/soroban-enabled-purple.svg)](https://soroban.stellar.org)
 [![Live Demo](https://img.shields.io/badge/demo-vercel-black.svg)](https://horizon-cover-frontend.vercel.app/)
 
-> **Join the Build:** We are creating public-good DeFi infrastructure for the Stellar ecosystem. Whether you write Rust, TypeScript, or documentation, there is a place for you here. Check our [open issues](../../issues).
+> Looking to contribute? We work issue-first — see [open issues](../../issues) and [CONTRIBUTING.md](CONTRIBUTING.md). Rust, TypeScript, and docs help are all welcome.
 
 ---
 
-HorizonCover brings trustless, data-driven insurance to the blockchain. By monitoring on-chain fund flows through Soroban smart contracts, we eliminate the need for claims adjusters, turning months of bureaucratic waiting into a 3-second USDC settlement for exploited protocols.
+## The idea
 
-### The DeFi Insurance Problem
-Traditional smart contract insurance is fundamentally broken:
+On-chain insurance has a problem: the moment a protocol actually needs a payout is the moment it can least afford to wait. Traditional cover sits in review queues or governance votes for weeks, the assessment overhead makes small policies pointless, and underwriters lock up huge amounts of capital against fuzzy, discretionary risk.
 
-- **Prohibitive Overhead:** The administrative cost of assessing a hack using decentralized governance makes micro-policies unviable.
-- **Subjective Delays:** Claims sit in DAO voting periods or human review queues for 30–90 days, leaving vulnerable protocols without critical liquidity when disaster strikes.
-- **Capital Inefficiency:** Insurers must lock up immense capital to underwrite discretionary risks.
+HorizonCover takes the human judgment out of the *payout* decision. A policy defines, up front, a measurable trigger — "if more than 30% of declared TVL is drained, pay out proportionally to the severity." When that condition is reported and verified, the contract calculates the amount and transfers USDC. The math is fixed at registration, so there's nothing to argue about after the fact.
 
-### The HorizonCover Architecture
-We replace trust with code:
-
-- **Soroban Core Vaults**: Secure pools holding USDC premiums, utilizing Protocol 26's checked arithmetic to guarantee absolute precision on every payout calculation.
-- **Fund Flow Adapters**: Lightweight contracts that observe on-chain TVL (Total Value Locked). If a malicious drain occurs, they instantly trigger the core vault.
-- **Monorepo Ecosystem**: A unified workspace featuring a React/Vite frontend, shared TypeScript types, and a robust developer SDK.
+It won't cover everything insurance covers — parametric triggers are deliberately narrow and objective. That's the trade: less flexibility, but instant and trustless settlement for the cases it does cover.
 
 ---
 
-### Protocol Highlights
-- ⚡ **Zero-Claim Execution**: Payouts are triggered automatically the moment an exploit threshold (e.g., >30% TVL drained) is met.
-- 🔒 **Mathematical Guarantees**: Soroban's native math prevents any floating-point or rounding errors during financial distribution.
-- 💸 **Instant Settlement**: Leverage Stellar's sub-5-second finality to distribute emergency liquidity exactly when the protocol needs it.
-- 🛠️ **Plug-and-Play Adapters**: Developers can easily write new triggers for flash-loan attacks, oracle manipulation, or bridge exploits.
+## How it works
 
----
+Two pieces, kept intentionally separate:
 
-### System Flow
+- **Core Vault** (`contracts/core`) — holds USDC, stores policies, and runs the payout math. It doesn't decide *when* an exploit happened; it only verifies a reported drain against a policy and pays. Underwriters fund it with `deposit_liquidity`, protocols keep coverage alive with `pay_premium`.
+- **Fund Flow Monitor** (`contracts/adapters/fund-flow-monitor`) — the adapter that reports a drain to the vault. Protocols can pre-register normal withdrawals so a planned treasury move can't be mistaken for an exploit.
+
+New trigger types (flash-loan patterns, oracle manipulation, bridge exploits) are added by writing new adapters, never by touching the vault.
+
+### A note on "automatic" detection
+
+Be aware of where the project actually is: **today the drain is reported by the monitor adapter, which is admin-gated in this MVP.** The vault independently verifies the report against the policy (threshold, premium currency, available capital) before paying, but the *detection* itself is not yet permissionless. Making the monitor read protocol balances directly on-chain so anyone can trigger it is the headline roadmap item — see [issue #1](../../issues/1).
+
 ```mermaid
 graph LR
-    subgraph "DeFi Ecosystem"
+    subgraph "DeFi"
         Target["Covered Protocol"]
-        Exploiter["Malicious Actor"]
+        Exploiter["Attacker"]
+    end
+    subgraph "HorizonCover"
+        Monitor["Fund Flow Monitor<br/>(adapter)"]
+        Vault(("Core Vault"))
+    end
+    subgraph "Settlement"
+        Beneficiary["Protocol Treasury"]
     end
 
-    subgraph "HorizonCover Infrastructure"
-        Monitor["Fund Flow Monitor<br/>Adapter Contract"]
-        Vault(("Core Vault<br/>Smart Contract"))
-    end
-
-    subgraph "Settlement Layer"
-        Treasury["Protocol Treasury"]
-        USDC["Circle USDC"]
-    end
-
-    Target -- "Pays Premium" --> Vault
-    Exploiter -- "Drains TVL" --> Target
-    Monitor -. "Observes Fund Flow" .-> Target
-    Monitor -- "trigger_payout()" --> Vault
-    Vault -- "Calculates Parametric Math" --> USDC
-    USDC -- "Instant Payout" --> Treasury
+    Target -- "pays premium" --> Vault
+    Underwriter["Underwriter"] -- "deposits liquidity" --> Vault
+    Exploiter -- "drains funds" --> Target
+    Monitor -. "reads / is told about the drain" .-> Target
+    Monitor -- "report_drain_event" --> Vault
+    Vault -- "verifies + pays USDC" --> Beneficiary
 
     style Vault fill:#0ea5e9,color:#fff
     style Monitor fill:#8b5cf6,color:#fff
-    style USDC fill:#22c55e,color:#fff
 ```
 
 ---
 
-### The Parametric Formula
-HorizonCover payouts are deterministic and proportional to the damage. If a protocol's drain ratio exceeds their policy threshold, the payout scales automatically:
+## The payout math
+
+Everything is integer-only and uses checked arithmetic — financial code here never touches floating point. A payout only happens once the drain crosses the policy's threshold, and it scales with how bad the drain was, capped at both the max benefit and whatever capital the vault actually holds:
 
 ```rust
-let drain_ratio = (funds_drained * 10_000) / total_locked_value;
+let drain_bps = (amount_drained * 10_000) / total_locked_value;
 
-if drain_ratio > drain_threshold {
-    let excess_bps = drain_ratio - drain_threshold;
-    let range_bps = 10_000 - drain_threshold;
-    
-    // Proportional payout based on the severity of the hack
+if drain_bps > drain_threshold {
+    let excess_bps = drain_bps - drain_threshold;
+    let range_bps  = 10_000 - drain_threshold;
     let payout = (max_benefit * excess_bps) / range_bps;
+    // ...then capped to max_benefit and to the vault's balance
 }
 ```
 
----
-
-### Current Status: Scaffolded for Stellar Wave ✅
-We have successfully scaffolded the foundational monorepo and core mathematical models. We are now preparing to onboard contributors.
-
-**Completed Foundations:**
-- ✅ Monorepo architecture (pnpm) established.
-- ✅ Core Vault contract written with deterministic payout math.
-- ✅ Fund Flow Monitor and Mock Protocol adapters implemented.
-- ✅ TypeScript SDK and Types packages built.
-- ✅ React Frontend with dynamic payout sandboxes and Stellar Wallets Kit.
-- ✅ **Live Dashboard Deployed:** [horizon-cover-frontend.vercel.app](https://horizon-cover-frontend.vercel.app/)
-
-### 🛠️ Open Bounties & Tasks
-Browse all contributor tasks on our [Issues board](../../issues). Filter by `wave-ready` to see what's available this wave.
+So a policy with a 30% threshold pays nothing at a 25% drain, a partial amount at 50%, and the full benefit only at a total loss.
 
 ---
 
-### Local Development Quick Start
+## Where the project is
 
-**Prerequisites:**
-- Rust (latest stable) | `wasm32-unknown-unknown` target
-- Node.js 20+ | pnpm 9+
 
-**1. Clone & Install**
+**Working today:**
+- Core Vault with policies, premiums, underwriter liquidity, and capped parametric payouts — covered by unit tests (`cargo test`).
+- Fund Flow Monitor with the withdrawal whitelist wired in, so legitimate withdrawals can't trigger a payout.
+- A TypeScript SDK that reads live contract state over Soroban RPC.
+- A React dashboard with real wallet connection (Stellar Wallets Kit) and a payout simulator that runs the exact on-chain formula. It runs in **preview mode** with no deployment configured, so you can try it immediately.
+
+**Not done yet** (and tracked as [issues](../../issues)):
+- Permissionless on-chain drain detection (#1) — the big one.
+- Underwriter withdrawals and a real solvency/reserve model (#2, #3).
+- SDK write/transaction flows and the register-policy UI (#8, #10).
+- A testnet deploy script so the dashboard shows live data (#15).
+
+---
+
+## Running it locally
+
+**You'll need:** Rust (stable) with the `wasm32-unknown-unknown` target, the Stellar CLI, Node 20+, and pnpm.
+
 ```bash
 git clone https://github.com/AtlasCrypt/HorizonCover.git
 cd HorizonCover
-
 pnpm install
-```
 
-**2. Configure Environment**
-```bash
-# Add the WASM compilation target (one time only)
-rustup target add wasm32-unknown-unknown
-```
-
-**3. Run the UI locally**
-```bash
+# frontend — works straight away in preview mode
 cd frontend
 pnpm dev
+
+# contracts
+cd ../contracts
+cargo test                  # run the test suite
+pnpm build:contracts        # build deployable wasm (from repo root)
 ```
 
-**4. Compile Contracts**
-```bash
-pnpm build:contracts
-```
+To point the frontend at a real deployment, copy `frontend/.env.example` to `frontend/.env.local` and fill in the contract IDs. Without them, the dashboard shows a clear "preview mode" state instead of fake numbers.
 
 ---
 
-### Project Structure
+## Layout
+
+This is a pnpm + Cargo monorepo. The frontend depends on the SDK, the SDK
+depends on the shared types, and everything ultimately talks to the contracts.
+
 ```text
 HorizonCover/
-├── contracts/               # Soroban Smart Contracts
-│   ├── core/                # The main insurance vault & payout logic
-│   └── adapters/            # Exploit detection triggers
-├── frontend/                # React / Vite Dashboard
-├── packages/                # Shared Libraries
-│   ├── sdk/                 # TypeScript interaction SDK
-│   └── types/               # Cross-repo TS definitions
-└── docs/                    # Architecture and contributing guides
+│
+├── contracts/                          # Soroban smart contracts (Cargo workspace)
+│   ├── core/
+│   │   └── src/
+│   │       ├── lib.rs                  # Core Vault: policies, premiums, liquidity, payouts
+│   │       └── test.rs                 # vault unit tests
+│   └── adapters/
+│       ├── fund-flow-monitor/
+│       │   └── src/
+│       │       ├── lib.rs              # reports drains, holds the withdrawal whitelist
+│       │       └── test.rs             # monitor unit tests
+│       └── mock-protocol/
+│           └── src/lib.rs              # a stand-in protocol for end-to-end testing
+│
+├── packages/                           # shared TypeScript workspace packages
+│   ├── sdk/src/
+│   │   ├── client.ts                   # HorizonClient — reads contract state over RPC
+│   │   ├── calculator.ts               # off-chain payout math (mirrors the contract)
+│   │   └── xdr-helpers.ts              # ScVal <-> native conversions
+│   └── types/src/index.ts              # Policy, CoverageParams, PayoutPreview, ...
+│
+├── frontend/                           # React + Vite dashboard
+│   ├── src/
+│   │   ├── components/                 # Dashboard, ProtocolCard, PayoutSimulator, WalletButton
+│   │   ├── hooks/                      # useWallet, useCoverage, useVault
+│   │   ├── lib/                        # wallet kit + Horizon client wiring
+│   │   └── config.ts                   # network + contract IDs from env
+│   └── .env.example                    # copy to .env.local to target a deployment
+│
+├── docs/                               # ARCHITECTURE.md, SECURITY.md
+└── .github/                            # issue templates, PR template, CI
 ```
 
 ---
 
-### Documentation
-For deep dives into the protocol's inner workings and security model, please refer to:
-- [**Architecture Guide**](./docs/ARCHITECTURE.md): System flows, component breakdown, and payout sequences.
-- [**Security & Threat Model**](./docs/SECURITY.md): RBAC matrix, known limitations, and mitigation strategies.
-- [**Contributing Guide**](CONTRIBUTING.md): Drips Wave guidelines and environment setup.
+## Docs
+
+- [Architecture](./docs/ARCHITECTURE.md) — components, flows, payout sequence.
+- [Security & threat model](./docs/SECURITY.md) — roles, assumptions, known limits.
+- [Contributing](CONTRIBUTING.md) — setup, the issue-first workflow, and PR conventions.
 
 ---
 
-### Contributing to HorizonCover
-HorizonCover is built for the community, by the community. 
+## Contributing
 
-To start contributing, browse the [Issues](../../issues) tab for tasks tagged with `good-first-issue` or `wave-task`. We maintain a collaborative, open environment—simply comment on an issue to claim it, fork the repository, and submit a PR.
+We manage work through GitHub Issues, and they're assigned before work starts — so the first step is to comment on an unassigned issue rather than opening a surprise PR. Full details (branching, commit style, testnet setup) are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-For detailed guidelines, see our [Contributing Guide](CONTRIBUTING.md).
+## License
 
----
-
-### License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-### Acknowledgements
-This protocol is a proud participant in the **Stellar Drips Wave** and the broader open-source Soroban ecosystem. By combining parametric triggers with the raw speed of Stellar, we are providing the safety net that DeFi desperately needs.
+MIT — see [LICENSE](LICENSE).
