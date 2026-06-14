@@ -9,8 +9,5 @@
     "skipLibCheck": true,
     "outDir": "dist"
   },
-  "include": ["src"],
-  "references": [
-    { "path": "../types" }
-  ]
+  "include": ["src"]
 }

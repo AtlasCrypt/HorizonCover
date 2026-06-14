@@ -1,14 +1,23 @@
-// XDR helpers — full Stellar SDK integration wired in Phase 7
-// These are placeholder types for frontend compilation
+import { Address, nativeToScVal, scValToNative, xdr } from '@stellar/stellar-sdk';
 
-export function bigintToScVal(value: bigint): any {
-  return value; // placeholder
+export function addressToScVal(address: string): xdr.ScVal {
+  return new Address(address).toScVal();
 }
 
-export function u128ToBigint(val: any): bigint {
-  return BigInt(val ?? 0);
+export function u128ToScVal(value: bigint): xdr.ScVal {
+  return nativeToScVal(value, { type: 'u128' });
 }
 
-export function addressToScVal(address: string): any {
-  return address; // placeholder
+export function u64ToScVal(value: bigint | number): xdr.ScVal {
+  return nativeToScVal(BigInt(value), { type: 'u64' });
 }
+
+export function u32ToScVal(value: number): xdr.ScVal {
+  return nativeToScVal(value, { type: 'u32' });
+}
+
+export function scValToBigint(val: xdr.ScVal): bigint {
+  return BigInt(scValToNative(val));
+}
+
+export { scValToNative };
