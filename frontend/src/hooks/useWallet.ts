@@ -28,7 +28,8 @@ export function useWallet() {
       setPublicKey(address);
     } catch (e) {
       // The user closing the modal is a normal outcome, not an error to surface.
-      const message = e instanceof Error ? e.message : String((e as any)?.message ?? e);
+      const message =
+        e instanceof Error ? e.message : String((e as { message?: unknown })?.message ?? e);
       if (!/closed the modal/i.test(message)) setError(message);
     } finally {
       setConnecting(false);

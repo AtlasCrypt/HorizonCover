@@ -17,5 +17,10 @@ export const CONTRACTS = {
   usdc: env.VITE_USDC_CONTRACT_ID ?? '',
 } as const;
 
+// A specific covered protocol to display on the dashboard. The core contract
+// stores policies keyed by protocol address with no enumeration, so the UI
+// needs an address to look one up.
+export const DEMO_PROTOCOL_ID: string = env.VITE_DEMO_PROTOCOL_ID ?? '';
+
 export const isConfigured = (): boolean =>
   Boolean(CONTRACTS.core && CONTRACTS.monitor);

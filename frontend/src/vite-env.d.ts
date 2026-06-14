@@ -5,6 +5,7 @@ interface ImportMetaEnv {
   readonly VITE_CORE_CONTRACT_ID?: string;
   readonly VITE_MONITOR_CONTRACT_ID?: string;
   readonly VITE_USDC_CONTRACT_ID?: string;
+  readonly VITE_DEMO_PROTOCOL_ID?: string;
 }
 
 interface ImportMeta {

@@ -1,40 +1,64 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Policy, PayoutPreview } from '@horizoncover/types';
 import { calculatePayoutOffchain } from '@horizoncover/sdk';
+import { getHorizonClient } from '../lib/horizon';
 
-export function useCoverage(_protocolAddress: string) {
+type Status = 'unconfigured' | 'loading' | 'ready' | 'error';
+
+export function useCoverage(protocolAddress: string) {
   const [policy, setPolicy] = useState<Policy | null>(null);
   const [preview, setPreview] = useState<PayoutPreview | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<Status>(() =>
+    getHorizonClient() && protocolAddress ? 'loading' : 'unconfigured',
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
-  const previewPayout = useCallback((amountDrained: bigint) => {
-    if (!policy) return;
-    const result = calculatePayoutOffchain(
-      amountDrained,
-      policy.totalLockedValue,
-      policy.drainThresholdBps,
-      policy.maxBenefit
-    );
-    setPreview(result);
-  }, [policy]);
+  const refreshPolicy = useCallback(() => setReloadKey((k) => k + 1), []);
 
-  const refreshPolicy = async () => {
-    setLoading(true);
-    // Mocking SDK call for Phase 6 scaffold
-    setTimeout(() => {
-      setPolicy({
-        beneficiary: 'GBENEFICIARY...',
-        maxBenefit: 100000000000n, // 10,000 USDC
-        totalLockedValue: 500000000000n, // 50,000 USDC
-        drainThresholdBps: 3000, // 30%
-        premiumPerPeriod: 5000000000n, // 500 USDC
-        lastPremiumPaid: Math.floor(Date.now() / 1000),
-        isActive: true,
-        isSettled: false
-      });
-      setLoading(false);
-    }, 1000);
-  };
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      const client = getHorizonClient();
+      if (!client || !protocolAddress) {
+        if (active) setStatus('unconfigured');
+        return;
+      }
+      if (active) {
+        setStatus('loading');
+        setError(null);
+      }
+      try {
+        const result = await client.getPolicy(protocolAddress);
+        if (!active) return;
+        setPolicy(result);
+        setStatus('ready');
+      } catch (e) {
+        if (!active) return;
+        setError(e instanceof Error ? e.message : String(e));
+        setStatus('error');
+      }
+    };
+    load();
+    return () => {
+      active = false;
+    };
+  }, [protocolAddress, reloadKey]);
 
-  return { policy, preview, loading, previewPayout, refreshPolicy };
+  const previewPayout = useCallback(
+    (amountDrained: bigint) => {
+      if (!policy) return;
+      setPreview(
+        calculatePayoutOffchain(
+          amountDrained,
+          policy.totalLockedValue,
+          policy.drainThresholdBps,
+          policy.maxBenefit,
+        ),
+      );
+    },
+    [policy],
+  );
+
+  return { policy, preview, status, error, previewPayout, refreshPolicy };
 }
