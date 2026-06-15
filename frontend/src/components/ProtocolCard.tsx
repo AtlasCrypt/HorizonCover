@@ -1,86 +1,92 @@
 import { useCoverage } from '../hooks/useCoverage';
 import { Shield, AlertTriangle, Settings } from 'lucide-react';
 
-const card = 'bg-gray-900 border border-gray-800 rounded-xl p-6';
+const usdc = (v: bigint) => `${(Number(v) / 1e7).toLocaleString()} USDC`;
+
+function Metric({ label, value, accent }: { label: string; value: string; accent?: string }) {
+  return (
+    <div className="rounded-xl border border-white/5 bg-white/2 p-4">
+      <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
+      <div className={`mt-1 text-lg font-semibold ${accent ?? ''}`}>{value}</div>
+    </div>
+  );
+}
 
 export function ProtocolCard({ protocolAddress }: { protocolAddress: string }) {
   const { policy, status, error } = useCoverage(protocolAddress);
 
   if (status === 'unconfigured') {
     return (
-      <div className={card}>
-        <h3 className="text-lg font-semibold flex items-center gap-2">
-          <Settings className="text-gray-400" size={20} />
+      <div className="card p-6">
+        <h3 className="flex items-center gap-2 text-lg font-semibold">
+          <Settings className="text-slate-400" size={20} />
           No deployment configured
         </h3>
-        <p className="text-sm text-gray-400 mt-2">
-          Set <code className="text-emerald-400">VITE_CORE_CONTRACT_ID</code> in{' '}
-          <code className="text-emerald-400">.env.local</code> to load live policy data.
+        <p className="mt-3 text-sm leading-relaxed text-slate-400">
+          This panel shows a live policy once contracts are deployed. Set{' '}
+          <code className="rounded bg-white/5 px-1.5 py-0.5 font-mono text-emerald-300">
+            VITE_CORE_CONTRACT_ID
+          </code>{' '}
+          and{' '}
+          <code className="rounded bg-white/5 px-1.5 py-0.5 font-mono text-emerald-300">
+            VITE_DEMO_PROTOCOL_ID
+          </code>{' '}
+          in <code className="font-mono text-slate-300">.env.local</code> to load it.
         </p>
       </div>
     );
   }
 
   if (status === 'loading') {
-    return <div className={`${card} animate-pulse h-48`} />;
+    return <div className="card h-64 animate-pulse" />;
   }
 
   if (status === 'error' || !policy) {
     return (
-      <div className={card}>
-        <h3 className="text-lg font-semibold flex items-center gap-2 text-red-400">
+      <div className="card p-6">
+        <h3 className="flex items-center gap-2 text-lg font-semibold text-red-400">
           <AlertTriangle size={20} />
           Could not load policy
         </h3>
-        <p className="text-sm text-gray-400 mt-2 wrap-break-word">{error ?? 'No policy found.'}</p>
+        <p className="mt-3 text-sm text-slate-400">{error ?? 'No policy found for this address.'}</p>
       </div>
     );
   }
 
-  return (
-    <div className={card}>
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Shield className="text-emerald-400" size={20} />
-            Protocol Coverage
-          </h3>
-          <p className="text-sm text-gray-400 mt-1">
-            {protocolAddress.slice(0, 8)}...{protocolAddress.slice(-8)}
-          </p>
-        </div>
-        <div
-          className={`px-3 py-1 text-sm rounded-full border ${
-            policy.isSettled
-              ? 'bg-gray-500/10 text-gray-400 border-gray-500/20'
-              : policy.isActive
-                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                : 'bg-red-500/10 text-red-400 border-red-500/20'
-          }`}
-        >
-          {policy.isSettled ? 'Settled' : policy.isActive ? 'Active' : 'Inactive'}
-        </div>
-      </div>
+  const statusChip = policy.isSettled
+    ? { label: 'Settled', cls: 'border-slate-500/20 bg-slate-500/10 text-slate-300' }
+    : policy.isActive
+      ? { label: 'Active', cls: 'border-emerald-400/20 bg-emerald-400/10 text-emerald-300' }
+      : { label: 'Inactive', cls: 'border-red-400/20 bg-red-400/10 text-red-300' };
 
-      <div className="grid grid-cols-2 gap-4 text-sm">
-        <div>
-          <div className="text-gray-400">Declared TVL</div>
-          <div className="font-medium">{Number(policy.totalLockedValue) / 1e7} USDC</div>
-        </div>
-        <div>
-          <div className="text-gray-400">Drain Threshold</div>
-          <div className="font-medium text-red-400">
-            {(policy.drainThresholdBps / 100).toFixed(2)}%
+  return (
+    <div className="card card-glow p-6">
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <span className="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/5 text-emerald-400">
+            <Shield size={20} />
+          </span>
+          <div>
+            <h3 className="text-lg font-semibold">Protocol coverage</h3>
+            <p className="font-mono text-xs text-slate-500">
+              {protocolAddress.slice(0, 8)}…{protocolAddress.slice(-8)}
+            </p>
           </div>
         </div>
-        <div>
-          <div className="text-gray-400">Max Benefit</div>
-          <div className="font-medium">{Number(policy.maxBenefit) / 1e7} USDC</div>
-        </div>
-        <div>
-          <div className="text-gray-400">Premium / Period</div>
-          <div className="font-medium">{Number(policy.premiumPerPeriod) / 1e7} USDC</div>
-        </div>
+        <span className={`rounded-full border px-3 py-1 text-xs font-medium ${statusChip.cls}`}>
+          {statusChip.label}
+        </span>
+      </div>
+
+      <div className="mt-6 grid grid-cols-2 gap-3">
+        <Metric label="Declared TVL" value={usdc(policy.totalLockedValue)} />
+        <Metric
+          label="Drain threshold"
+          value={`${(policy.drainThresholdBps / 100).toFixed(2)}%`}
+          accent="text-red-300"
+        />
+        <Metric label="Max benefit" value={usdc(policy.maxBenefit)} accent="text-emerald-300" />
+        <Metric label="Premium / period" value={usdc(policy.premiumPerPeriod)} />
       </div>
     </div>
   );

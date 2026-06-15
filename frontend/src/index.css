@@ -1,11 +1,77 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg-dark: #030712;
-  --color-card-dark: #111827;
-  --color-border-dark: #1f2937;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-ink: #050810;
+  --color-surface: #0b1120;
+  --color-surface-2: #111a2e;
+  --color-line: #1e2a44;
+  --color-brand: #34d399;
+  --color-brand-2: #38bdf8;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  @apply bg-gray-950 text-white antialiased;
+  @apply bg-ink text-slate-100 antialiased;
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
+}
+
+/* Ambient background glow behind the page */
+.bg-aurora {
+  background:
+    radial-gradient(60rem 40rem at 75% -10%, rgba(56, 189, 248, 0.12), transparent 60%),
+    radial-gradient(50rem 40rem at 10% 0%, rgba(52, 211, 153, 0.12), transparent 55%),
+    var(--color-ink);
+}
+
+.text-gradient {
+  @apply bg-linear-to-r from-emerald-300 via-emerald-400 to-sky-400 bg-clip-text text-transparent;
+}
+
+.card {
+  @apply rounded-2xl border border-white/10 bg-white/3 backdrop-blur-sm;
+}
+
+.card-glow {
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    0 20px 60px -30px rgba(56, 189, 248, 0.35);
+}
+
+::selection {
+  background: rgba(52, 211, 153, 0.3);
+}
+
+/* Range input styling for the simulator */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #34d399, #38bdf8);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 3px solid #0b1120;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 3px solid #0b1120;
+  cursor: pointer;
 }
