@@ -4,6 +4,8 @@ import { StatsBand } from './components/StatsBand';
 import { HowItWorks } from './components/HowItWorks';
 import { Dashboard } from './components/Dashboard';
 import { PayoutSimulator } from './components/PayoutSimulator';
+import { Underwriters } from './components/Underwriters';
+import { Faq } from './components/Faq';
 import { Footer } from './components/Footer';
 
 function App() {
@@ -27,6 +29,9 @@ function App() {
             <PayoutSimulator />
           </div>
         </section>
+
+        <Underwriters />
+        <Faq />
       </main>
       <Footer />
     </div>

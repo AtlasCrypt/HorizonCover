@@ -5,6 +5,8 @@ const links = [
   { label: 'How it works', href: '#how' },
   { label: 'Coverage', href: '#dashboard' },
   { label: 'Simulator', href: '#simulator' },
+  { label: 'Underwriters', href: '#underwriters' },
+  { label: 'FAQ', href: '#faq' },
 ];
 
 export function Navbar() {
