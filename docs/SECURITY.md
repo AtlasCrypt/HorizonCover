@@ -42,7 +42,7 @@ The protocol enforces strict access controls using Soroban's `require_auth()` me
 
 ## Known Limitations (MVP Phase)
 
-*This repository is currently in a pre-approval scaffold state for the Stellar Drips Wave Program.*
+*This repository is an open source project in an early MVP state.*
 
 1. **Oracle Decentralization:** Currently, the Fund Flow monitor relies on an Admin trigger to simulate the detection. Future iterations require fully decentralized on-chain event listeners.
 2. **Reentrancy Protection:** While Soroban has built-in protections against reentrancy, explicit non-reentrant state locks should be added before mainnet deployment.

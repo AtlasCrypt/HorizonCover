@@ -1,8 +1,8 @@
 # Contributing to HorizonCover
 
-Welcome! We are incredibly excited you are interested in contributing to HorizonCover. This repository is participating in the **Stellar Drips Wave Program**, meaning your contributions may be eligible for funding and rewards based on the Drips point system.
+Welcome! Incredibly excited you are interested in contributing to HorizonCover. This is an **open source** project and contributions are welcome.
 
-## The Drips Point System
+## The open source workflow
 
 We manage all our work through the GitHub Issues board. Issues are pre-scoped and tagged with difficulty and area labels. 
 
@@ -10,7 +10,7 @@ To ensure fair attribution for the Wave program:
 1. **Find an Issue:** Browse the open issues. If it is unassigned, comment "I would like to work on this."
 2. **Wait for Assignment:** A maintainer will formally assign the issue to you. **Do not start work until you are assigned.**
 3. **Submit a PR:** Once assigned, link your PR to the issue.
-4. **Merge & Points:** Once reviewed and merged, your contribution will be logged for the Drips Wave program!
+4. **Merge:** Once reviewed and merged, your contribution becomes part of the open source project!
 
 ## Development Setup
 
